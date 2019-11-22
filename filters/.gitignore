@@ -1,0 +1,6 @@
+*/__pycache__
+*.spec
+*.idea
+*/venv
+*.exe
+*.zip
