@@ -1,3 +1,4 @@
+# not used
 from skimage import img_as_float
 from scipy.ndimage import binary_erosion,generate_binary_structure,_ni_support,_ni_docstrings,_nd_image
 from skimage._shared.utils import check_nD

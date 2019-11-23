@@ -11,12 +11,18 @@ import gaussdlg
 import mdlg
 import platform
 import resizedlg
+import sedlg
 import helpform
-import convolution
-import filters
+import filters.convolution as convolution
+import filters.filters as filters
+import morphology.edgeDetection as edgeDetection
+import morphology.gradient as gradient
+import morphology.reconstruction as reconstruction
 import stack
 import qimage2ndarray
 import cv2
+import numpy as np
+import json
 
 __version__ = "1.0.0"
 
@@ -127,6 +133,20 @@ class MainWindow(QMainWindow):
             tip="Median filter", checkable=True, signal="toggled(bool)")
         filterGroup.addAction(editMedianFilter)
 
+        morphGroup = QActionGroup(self)
+        editEdgeDetection = self.createAction(
+            "Edge &Detection", self.editEdgeDetection, icon="fa.envira",
+            tip="Morphological edge detection", checkable=True, signal="toggled(bool)")
+        morphGroup.addAction(editEdgeDetection)
+        editReconstruction = self.createAction(
+            "&Reconstruction", self.editReconstruction, icon="fa.ravelry",
+            tip="Morphological Reconstruction", checkable=True, signal="toggled(bool)")
+        morphGroup.addAction(editReconstruction)
+        editGradient = self.createAction(
+            "&Gradient", self.editGradient, icon="fa.signal",
+            tip="Morphological gradient", checkable=True, signal="toggled(bool)")
+        morphGroup.addAction(editGradient)
+
         helpAboutAction = self.createAction("&About Image Changer",
                                             self.helpAbout)
         helpHelpAction = self.createAction("&Help", self.helpHelp,
@@ -154,6 +174,10 @@ class MainWindow(QMainWindow):
         filterMenu = editMenu.addMenu(qtawesome.icon("fa.filter"), "&Filter")
         self.addActions(filterMenu, (editGaussianFilter, editMeanFilter, editMedianFilter))
 
+        # morphology
+        morphoMenu = editMenu.addMenu(qtawesome.icon("fa.mixcloud"), "&Morphology")
+        self.addActions(morphoMenu,(editEdgeDetection,editReconstruction,editGradient))
+
         # help Menu
         helpMenu = self.menuBar().addMenu("&Help")
         self.addActions(helpMenu, (helpAboutAction, helpHelpAction))
@@ -167,7 +191,8 @@ class MainWindow(QMainWindow):
         editToolbar.setObjectName("EditToolBar")
         self.addActions(editToolbar, (editBackAction, editMirrorVerticalAction, editMirrorHorizontalAction,
                                       editRobertsConvolve, editPrewittConvolve, editSobelConvolve,
-                                      editGaussianFilter, editMeanFilter, editMedianFilter))
+                                      editGaussianFilter, editMeanFilter, editMedianFilter,
+                                      editEdgeDetection,editReconstruction,editGradient))
         self.zoomSpinBox = QSpinBox()
         self.zoomSpinBox.setRange(1, 400)
         self.zoomSpinBox.setSuffix(" %")
@@ -180,7 +205,8 @@ class MainWindow(QMainWindow):
 
         self.addActions(self.imageLabel, (editBackAction, editMirrorVerticalAction, editMirrorHorizontalAction,
                                           editRobertsConvolve, editPrewittConvolve, editSobelConvolve,
-                                          editGaussianFilter, editMeanFilter, editMedianFilter))
+                                          editGaussianFilter, editMeanFilter, editMedianFilter,
+                                          editEdgeDetection,editReconstruction,editGradient))
 
         self.resetableActions = ((editRobertsConvolve, True),
                                  (editPrewittConvolve, True),
@@ -545,6 +571,72 @@ class MainWindow(QMainWindow):
                                   if on else "Unfiltered(Median)")
             else:
                 self.updateStatus("wrong arguments passed")
+        self.showImage()
+        self.dirty = True
+
+    def editEdgeDetection(self,on):
+        if self.currentImage.isNull() or not on:
+            return
+        form = sedlg.SE_Dialog(self)
+        if form.exec_():
+            k = form.result()
+            if k:
+                tmp = np.array(json.loads(k))
+                if type(tmp)==type(tmp[0]):
+                    # do edge detection
+                    self.cvimg = edgeDetection.edgeDetectionStd(self.cvimg,tmp)
+                    self.currentImage = qimage2ndarray.array2qimage(self.cvimg)
+                    self.imgStack.push(self.currentImage)
+                    self.cvimgstack.push(self.cvimg)
+                    self.updateStatus("Morphological edge detection" if on else "not morphological edge detection")
+                else:
+                    self.updateStatus("Wrong structure element")
+            else:
+                self.updateStatus("no argument")
+        self.showImage()
+        self.dirty = True
+
+    def editReconstruction(self, on):
+        if self.currentImage.isNull() or not on:
+            return
+        form = sedlg.SE_Dialog(self)
+        if form.exec_():
+            k = form.result()
+            if k:
+                tmp = np.array(json.loads(k))
+                if type(tmp)==type(tmp[0]):
+                    # do edge detection
+                    self.cvimg = reconstruction.reconstruction(self.cvimg,tmp)
+                    self.currentImage = qimage2ndarray.array2qimage(self.cvimg)
+                    self.imgStack.push(self.currentImage)
+                    self.cvimgstack.push(self.cvimg)
+                    self.updateStatus("Morphological reconstruction" if on else "not morphological reconstruction")
+                else:
+                    self.updateStatus("Wrong structure element")
+            else:
+                self.updateStatus("no argument")
+        self.showImage()
+        self.dirty = True
+
+    def editGradient(self, on):
+        if self.currentImage.isNull() or not on:
+            return
+        form = sedlg.SE_Dialog(self)
+        if form.exec_():
+            k = form.result()
+            if k:
+                tmp = np.array(json.loads(k))
+                if type(tmp)==type(tmp[0]):
+                    # do edge detection
+                    self.cvimg = gradient.gradient(self.cvimg,tmp)
+                    self.currentImage = qimage2ndarray.array2qimage(self.cvimg)
+                    self.imgStack.push(self.currentImage)
+                    self.cvimgstack.push(self.cvimg)
+                    self.updateStatus("Morphological gradient" if on else "not morphological gradient")
+                else:
+                    self.updateStatus("Wrong structure element")
+            else:
+                self.updateStatus("no argument")
         self.showImage()
         self.dirty = True
 
